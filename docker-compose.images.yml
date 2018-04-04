@@ -3,16 +3,19 @@ version: "2"
 services:
   rng:
     build: rng
+    image: ${REGISTRY_SLASH}rng${COLON_TAG}
     ports:
     - "8001:80"
 
   hasher:
     build: hasher
+    image: ${REGISTRY_SLASH}hasher${COLON_TAG}
     ports:
     - "8002:80"
 
   webui:
     build: webui
+    image: ${REGISTRY_SLASH}webui${COLON_TAG}
     ports:
     - "8000:80"
     volumes:
@@ -23,4 +26,5 @@ services:
 
   worker:
     build: worker
+    image: ${REGISTRY_SLASH}worker${COLON_TAG}
 
