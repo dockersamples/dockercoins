@@ -1,0 +1,28 @@
+version: "3.2"
+
+services:
+  rng:
+    build: dockercoins/rng
+    image: ${USERNAME}/rng:${TAG-latest}
+    deploy:
+      mode: global
+
+  hasher:
+    build: dockercoins/hasher
+    image: ${USERNAME}/hasher:${TAG-latest}
+
+  webui:
+    build: dockercoins/webui
+    image: ${USERNAME}/webui:${TAG-latest}
+    ports:
+    - "8000:80"
+
+  redis:
+    image: redis
+
+  worker:
+    build: dockercoins/worker
+    image: ${USERNAME}/worker:${TAG-latest}
+    deploy:
+      replicas: 10
+
