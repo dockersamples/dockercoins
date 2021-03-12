@@ -1,0 +1,172 @@
+#creamos las redes
+networks:
+  hasher:
+    internal: true
+  redis:
+    internal: true
+  rng:
+    internal: true
+  webui:
+    internal: false
+  worker:
+    internal: true
+#balanceadores (servicios)
+services:
+  #se puede poner un FQDN
+  hasher:
+    deploy:
+      mode: replicated
+      placement:
+        constraints:
+          - node.role == worker
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 100M
+        #ojo que a veces el reservar a full puede ser caro
+        reservations:
+          cpus: "0.1"
+          memory: 100M
+    expose:
+      - 8080
+    healthcheck:
+      interval: 10s
+      retries: 3
+      start_period: 30s
+      test: wget -q --spider localhost:8080
+      timeout: 1s
+    #para diferentes microservicios
+    image: macarenasre/dockercoins:latest-hasher
+    # 1 proyecto x MS --> image: macarenasre/dockercoins-hasher:latest
+    networks:
+      #la que hemos declarado en networks
+      - hasher
+  redis:
+    deploy:
+      mode: replicated
+      placement:
+        constraints:
+          - node.role == worker
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 100M
+        #ojo que a veces el reservar a full puede ser caro
+        reservations:
+          cpus: "0.1"
+          memory: 100M
+    expose:
+      - 6379
+    healthcheck:
+      interval: 10s
+      retries: 3
+      start_period: 30s
+      test: redis-cli
+      timeout: 1s
+    image: redis:6.0.9-alpine3.12@sha256:aa31e6d2afc72d2222ed3953587197c324f615861771637a64053f9d99ba4b74
+    networks:
+      #la que hemos declarado en networks
+      - redis
+    volumes:
+      #para openshift (en swarm cuela) - verificar en cada producto que ruta necesita
+      - redis:/data
+  rng:
+    deploy:
+      #DaemonSet (se despliega una vez por worker)
+      mode: global
+      placement:
+        constraints:
+          - node.role == worker
+      #replicas: 1 -- al ser demonio no lo podemos replicar
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 100M
+        #ojo que a veces el reservar a full puede ser caro
+        reservations:
+          cpus: "0.1"
+          memory: 100M
+    expose:
+      - 8080
+    healthcheck:
+      interval: 10s
+      retries: 3
+      start_period: 30s
+      test: wget -q --spider localhost:8080
+      timeout: 1s
+    image: macarenasre/dockercoins:latest-rng
+    networks:
+      #la que hemos declarado en networks
+      - rng
+  webui:
+    deploy:
+      mode: replicated
+      placement:
+        constraints:
+          - node.role == worker
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 100M
+        #ojo que a veces el reservar a full puede ser caro
+        reservations:
+          cpus: "0.1"
+          memory: 100M
+    expose:
+      - 8080
+    healthcheck:
+      interval: 10s
+      retries: 3
+      start_period: 30s
+      #aqui podemos usar curl porque lo tenemos en la imagen  
+      #podemos comprobarlo con docker run --rm <nombre_imagen> which curl
+      test: curl -f localhost:8080
+      timeout: 1s
+    image: macarenasre/dockercoins:latest-webui
+    networks:
+      #nos conectamos a redis asi que incluimos una interfaz directa (se podria usar un proxy en DMZ)
+      - redis
+      #la que hemos declarado en networks
+      - webui
+  worker:
+    deploy:
+      mode: replicated
+      placement:
+        constraints:
+          - node.role == worker
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 100M
+        #ojo que a veces el reservar a full puede ser caro
+        reservations:
+          cpus: "0.1"
+          memory: 100M
+    #no exponemos nada
+    #expose:
+    #  - 8080
+    healthcheck:
+      interval: 10s
+      retries: 3
+      start_period: 30s
+      test: netstat -nt | grep ESTABLISHED | grep -q 6379
+      timeout: 1s
+    image: macarenasre/dockercoins:latest-worker
+    networks:
+      #listar las que necesita usar
+      - hasher
+      - redis
+      - rng
+      #la que hemos declarado en networks
+      - worker
+version: '3.8'
+volumes:
+  redis:
+  
+  
+  
+    
