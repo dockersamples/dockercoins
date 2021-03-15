@@ -73,28 +73,43 @@ jobs:
         set -x
         #creo imagen image
         docker build -t terferre/phpinfo-2:testing .
+        for app in hasher rng webui worker
+          do \
+            docker build -t macarenasre/dockercoins:testing-${app} ${app}
+          done
         docker swarm init
-        project=phpinfo-2
+        project=dockercoins
         compose=etc/swarm/manifests/${project}.yaml
         #sustituyo latest x testing y despliego con compose
         sed -i /image:/s/latest/testing/ ${compose}
         sed -i /node.role/s/worker/manager/ ${compose}
-        #Despliegue en Openshift
-        #oc apply -f ${compose}
-        #despliegue en Kubernetes
-        #kubectl apply -f ${compose}
         #desplioegue en swarm
         docker stack deploy -c ${compose} ${project}
-        while true 
+        while true
           do \
             sleep 10
-            docker service ls | grep "${project}.*\([0-9]\)/\1" && break
+            docker service logs ${project}_hasher 2>& 1 | grep '== Sinatra .* has taken the stage on .* for development with backup from Thin' && break
           done
         while true
           do \
             sleep 10
-            docker service logs ${project}_${project} 2>& 1 | grep 'PHP .* Development Server .* started' && break 
-          done          
+            docker service logs ${project}_redis 2>& 1 | grep 'Ready to accept connections' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker service logs ${project}_rng 2>& 1 | docker service logs ${project}_nning on' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker service logs ${project}_webui 2>& 1 | grep 'WEBUI running on port' && break
+          done  
+        while true
+          do \
+            sleep 10
+            docker service logs ${project}_worker 2>& 1 | grep 'Coin found' && break
+          done       
   kubernetes:
     runs-on: ubuntu-18.04
     steps:
