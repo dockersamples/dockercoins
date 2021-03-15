@@ -72,7 +72,6 @@ jobs:
       run: |
         set -x
         #creo imagen image
-        docker build -t terferre/phpinfo-2:testing .
         for app in hasher rng webui worker
           do \
             docker build -t macarenasre/dockercoins:testing-${app} ${app}
