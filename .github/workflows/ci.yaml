@@ -12,18 +12,41 @@ jobs:
     - name: test
       run: |
         set -x
-        docker build -t test .
-        docker run -d --name testcontainer test
-        while true 
+        for app in hasher rng webui worker
           do \
-            sleep 10
-            docker exec testcontainer ps | grep 'php -f index.php' && break
+            docker build - macarenasre/dockercoins:testing-${app} ${app}
           done
+        #creamos las redes
+        for app in hasher redis rng webui worker
+          do \
+            docker network create ${app}
+          done        
+        #ejecutamos container y volumen
+        docker run -d --name redis --network redis -v redis:/data redis
+        #creamos todos los demas contenedores
+        for app in hasher rng webui worker
+          do \
+            docker run -d --name ${app} --network ${app} macarenasre/dockercoins:testing-${app}
+          done
+        #conectar los contenedores a las redes
+        for app in webui worker
+          do \
+            docker network connect redis ${app}
+          done
+        for network in hasher rng
+          do \
+            docker network connect ${network} worker
+          done
+        #testear la aplicacion
         while true
           do \
             sleep 10
-            docker logs testcontainer 2>& 1 | grep 'PHP .* Development Server .* started' && break 
-          done      
+            docker logs webui 2>& 1 | grep 'WEBUI running on port' && break
+          done
+        for app in hasher redis rng worker
+          do \
+            docker logs ${logs}
+          done          
   swarm:
     runs-on: ubuntu-18.04
     steps:
