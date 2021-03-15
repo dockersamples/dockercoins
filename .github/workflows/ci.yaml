@@ -14,7 +14,7 @@ jobs:
         set -x
         for app in hasher rng webui worker
           do \
-            docker build - macarenasre/dockercoins:testing-${app} ${app}
+            docker build macarenasre/dockercoins:testing-${app} ${app}
           done
         #creamos las redes
         for app in hasher redis rng webui worker
