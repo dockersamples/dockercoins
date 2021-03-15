@@ -14,17 +14,17 @@ jobs:
         set -x
         for app in hasher rng webui worker
           do \
-            docker build macarenasre/dockercoins:testing-${app} ${app}
+            docker build -t macarenasre/dockercoins:testing-${app} ${app}
           done
-        #creamos las redes
+        #creamos redes p cada uno
         for app in hasher redis rng webui worker
           do \
             docker network create ${app}
-          done        
-        #ejecutamos container y volumen
+          done
+        #ejecyutamos container y creamos volumen
         docker run -d --name redis --network redis -v redis:/data redis
-        #creamos todos los demas contenedores
-        for app in hasher rng webui worker
+        # 
+        for app in hasher rng webui worker 
           do \
             docker run -d --name ${app} --network ${app} macarenasre/dockercoins:testing-${app}
           done
@@ -33,20 +33,20 @@ jobs:
           do \
             docker network connect redis ${app}
           done
-        for network in hasher rng
+        for network in hasher rng 
           do \
             docker network connect ${network} worker
           done
-        #testear la aplicacion
+        #testear app
         while true
           do \
             sleep 10
             docker logs webui 2>& 1 | grep 'WEBUI running on port' && break
           done
-        for app in hasher redis rng worker
+        for app in hasher redis rng worker 
           do \
-            docker logs ${logs}
-          done          
+            docker logs ${app}
+          done       
   swarm:
     runs-on: ubuntu-18.04
     steps:
