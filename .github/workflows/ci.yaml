@@ -51,6 +51,11 @@ jobs:
         while true
           do \
             sleep 10
+            docker logs rng 2>& 1 | grep 'Running on' && break
+          done
+        while true
+          do \
+            sleep 10
             docker logs webui 2>& 1 | grep 'WEBUI running on port' && break
           done  
         while true
