@@ -194,7 +194,7 @@ jobs:
         while true
           do 
             sleep 10
-            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+            kubectl logs ds/${app} 2>& 1 | grep "${pattern}" && break 
           done
         app=webui
         pattern='WEBUI running on port'
