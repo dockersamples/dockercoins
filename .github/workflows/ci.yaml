@@ -205,4 +205,4 @@ jobs:
             sleep 10
             kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
           done
-          
+  
