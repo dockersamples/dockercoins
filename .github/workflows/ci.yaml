@@ -1,0 +1,213 @@
+name: CI
+on: 
+  push:
+    branches: 
+    - docker
+jobs: 
+  docker:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: test
+      run: |
+        set -x
+        for app in hasher rng webui worker
+          do \
+            docker build -t macarenasre/dockercoins:testing-${app} ${app}
+          done
+        #creamos redes p cada uno
+        for app in hasher redis rng webui worker
+          do \
+            docker network create ${app}
+          done
+        #ejecyutamos container y creamos volumen
+        docker run -d --name redis --network redis -v redis:/data redis
+        # 
+        for app in hasher rng webui worker 
+          do \
+            docker run -d --name ${app} --network ${app} macarenasre/dockercoins:testing-${app}
+          done
+        #conectar los contenedores a las redes
+        for app in webui worker
+          do \
+            docker network connect redis ${app}
+          done
+        for network in hasher rng 
+          do \
+            docker network connect ${network} worker
+          done
+        #testear app
+        while true
+          do \
+            sleep 10
+            docker logs hasher 2>& 1 | grep '== Sinatra .* has taken the stage on .* for development with backup from Thin' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker logs redis 2>& 1 | grep 'Ready to accept connections' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker logs rng 2>& 1 | grep 'Running on' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker logs webui 2>& 1 | grep 'WEBUI running on port' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker logs worker 2>& 1 | grep 'Coin found' && break
+          done
+  swarm:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: test
+      run: |
+        set -x
+        #creo imagen image
+        for app in hasher rng webui worker
+          do \
+            docker build -t macarenasre/dockercoins:testing-${app} ${app}
+          done
+        docker swarm init
+        project=dockercoins
+        compose=etc/swarm/manifests/${project}.yaml
+        #sustituyo latest x testing y despliego con compose
+        sed -i /image:/s/latest/testing/ ${compose}
+        sed -i /node.role/s/worker/manager/ ${compose}
+        #Despliegue en Openshift
+        #oc apply -f ${compose}
+        #despliegue en Kubernetes
+        #kubectl apply -f ${compose}
+        #desplioegue en swarm
+        docker stack deploy -c ${compose} ${project}
+        while true
+          do \
+            sleep 10
+            docker service logs ${project}_hasher 2>& 1 | grep '== Sinatra .* has taken the stage on .* for development with backup from Thin' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker service logs ${project}_redis 2>& 1 | grep 'Ready to accept connections' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker service logs ${project}_rng 2>& 1 | grep 'Running on' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker service logs ${project}_webui 2>& 1 | grep 'WEBUI running on port' && break
+          done
+        while true
+          do \
+            sleep 10
+            docker service logs ${project}_worker 2>& 1 | grep 'Coin found' && break
+          done        
+  kubernetes:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: test
+      run: |
+        set -x
+        project=dockercoins
+        #creo imagen image
+        for app in hasher rng webui worker
+          do
+            docker build -t macarenasre/${project}:testing-${app} ${app}
+          done
+        #install kubernetes en ubunto
+        sudo apt-get update -y
+        #sudo apt-get install -y docker.io
+        #sudo systemctl enable --now docker
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+        echo deb http://apt.kubernetes.io/ kubernetes-xenial main | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+        sudo apt-get update -y
+        sudo apt-get install -y --allow-downgrades kubelet=1.18.14-00 kubeadm=1.18.14-00 kubectl=1.18.14-00
+        sudo systemctl enable --now kubelet
+        #inicializar kubernetes
+        ip_leader=$( ip r | grep default | awk '{ print $9 }' )
+        echo ${ip_leader} kube-apiserver | sudo tee -a /etc/hosts
+        sudo swapoff --all 
+        sudo kubeadm init --upload-certs --control-plane-endpoint kube-apiserver --pod-network-cidr 192.168.0.0/16 --ignore-preflight-errors all
+        #copiamos las credenciales  a nuestro dir
+        mkdir -p ${HOME}/.kube
+        sudo cp /etc/kubernetes/admin.conf ${HOME}/.kube/config
+        sudo chown -R $( id -u ):$( id -g ) ${HOME}/.kube
+        #una vez inicializado Kubernetes creamos la red
+        kubectl apply -f https://docs.projectcalico.org/v3.17/manifests/calico.yaml
+        #comprobar q el cluster esta listo
+        while true
+          do 
+            kubectl get node | grep Ready | grep -v NotReady && break
+            sleep 10
+          done
+        #limpiar configuracion 
+        sudo sed -i /kube-apiserver/d /etc/hosts 
+        sudo sed -i /127.0.0.1.*localhost/s/$/' 'kube-apiserver/ /etc/hosts
+        #habilitar el master
+        master=$( kubectl get node | grep master | awk '{ print $1 }' ) 
+        kubectl taint node ${master} node-role.kubernetes.io/master:NoSchedule-
+        
+        compose=etc/kubernetes/manifests/${project}.yaml
+        #sustituyo latest x testing y despliego con compose
+        sed -i /image:/s/latest/testing/ ${compose}
+        sed -i /imagePullPolicy/s/Always/Never/ ${compose}
+        #Despliegue en Openshift
+        #oc apply -f ${compose}
+        #despliegue en Kubernetes
+        kubectl apply -f ${compose}
+        #desplioegue en swarm
+        #docker stack deploy -c ${compose} ${project}
+        app=hasher
+        pattern='== Sinatra .* has taken the stage on .* for development with backup from Thin'
+        while true
+          do 
+            sleep 10
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+        app=redis
+        pattern='Ready to accept connections'
+        while true
+          do 
+            sleep 10
+            #kubecetl deploy/redis
+            #kubectl describe rs
+            #kubectl describe po
+            #kubectl logs describe deploy/redis
+            #sleep 100
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+        app=rng
+        pattern='Running on'
+        while true
+          do 
+            sleep 10
+            kubectl logs ds/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+        app=webui
+        pattern='WEBUI running on port'
+        while true
+          do 
+            sleep 10
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+        app=worker
+        pattern='Coin found'
+        while true
+          do 
+            sleep 10
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+  

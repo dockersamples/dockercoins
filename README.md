@@ -1,4 +1,5 @@
 # dockercoins
+![CI](https://github.com/Macarena-SRE/dockercoins/workflows/CI/badge.svg?branch=docker)
 
 This is the demo application originally used in Jérôme Petazzoni's [orchestration workshop](https://github.com/jpetazzo/container.training).
 
