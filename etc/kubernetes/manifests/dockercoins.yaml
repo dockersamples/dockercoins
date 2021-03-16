@@ -15,6 +15,7 @@ spec:
         -
           image: macarenasre/dockercoins:latest-rng
           imagePullPolicy: Always
+          name: rng
           ports: 
             -
               containerPort: 8080
@@ -38,6 +39,7 @@ spec:
         -
           image: macarenasre/dockercoins:latest-hasher
           imagePullPolicy: Always
+          name: hasher
           ports: 
             -
               containerPort: 8080
@@ -60,7 +62,8 @@ spec:
       containers: 
         -
           image: redis
-          imagePullPolicy: Allways
+          imagePullPolicy: Always
+          name: redis
           ports: 
             -
               containerPort: 6379
@@ -92,6 +95,7 @@ spec:
         -
           image: macarenasre/dockercoins:latest-webui
           imagePullPolicy: Always
+          name: webui
           ports: 
             -
               containerPort: 8080
@@ -115,6 +119,7 @@ spec:
         -
           image: macarenasre/dockercoins:latest-worker
           imagePullPolicy: Always
+          name: worker
 ---
 apiVersion: v1
 kind: Service
