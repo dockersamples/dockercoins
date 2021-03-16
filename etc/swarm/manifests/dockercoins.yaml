@@ -33,7 +33,7 @@ services:
       test: wget -q --spider localhost:8080
       timeout: 1s
     image: macarenasre/dockercoins:latest-hasher
-    # image: terferre/dockercoins-hasher:latest esto genera q proyecto x microservicio
+    # image: macarenasre/dockercoins-hasher:latest esto genera q proyecto x microservicio
     networks:
       - hasher
   redis:
@@ -145,3 +145,4 @@ services:
 version: '3.8'      
 volumes: 
   redis:
+ 
