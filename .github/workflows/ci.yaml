@@ -2,7 +2,7 @@ name: CI
 on: 
   push:
     branches: 
-    - docker
+    - master
 jobs: 
   docker:
     runs-on: ubuntu-18.04
@@ -57,12 +57,12 @@ jobs:
           do \
             sleep 10
             docker logs webui 2>& 1 | grep 'WEBUI running on port' && break
-          done  
+          done
         while true
           do \
             sleep 10
             docker logs worker 2>& 1 | grep 'Coin found' && break
-          done           
+          done
   swarm:
     runs-on: ubuntu-18.04
     steps:
@@ -82,6 +82,10 @@ jobs:
         #sustituyo latest x testing y despliego con compose
         sed -i /image:/s/latest/testing/ ${compose}
         sed -i /node.role/s/worker/manager/ ${compose}
+        #Despliegue en Openshift
+        #oc apply -f ${compose}
+        #despliegue en Kubernetes
+        #kubectl apply -f ${compose}
         #desplioegue en swarm
         docker stack deploy -c ${compose} ${project}
         while true
@@ -97,18 +101,18 @@ jobs:
         while true
           do \
             sleep 10
-            docker service logs ${project}_rng 2>& 1 | docker service logs ${project}_nning on' && break
+            docker service logs ${project}_rng 2>& 1 | grep 'Running on' && break
           done
         while true
           do \
             sleep 10
             docker service logs ${project}_webui 2>& 1 | grep 'WEBUI running on port' && break
-          done  
+          done
         while true
           do \
             sleep 10
             docker service logs ${project}_worker 2>& 1 | grep 'Coin found' && break
-          done       
+          done        
   kubernetes:
     runs-on: ubuntu-18.04
     steps:
@@ -120,8 +124,8 @@ jobs:
         project=dockercoins
         #creo imagen image
         for app in hasher rng webui worker
-          do \
-            docker build -t macarenasre/dockercoins:testing-${app} ${app}
+          do
+            docker build -t macarenasre/${project}:testing-${app} ${app}
           done
         #install kubernetes en ubunto
         sudo apt-get update -y
@@ -145,7 +149,7 @@ jobs:
         kubectl apply -f https://docs.projectcalico.org/v3.17/manifests/calico.yaml
         #comprobar q el cluster esta listo
         while true
-          do \
+          do 
             kubectl get node | grep Ready | grep -v NotReady && break
             sleep 10
           done
@@ -160,6 +164,8 @@ jobs:
         #sustituyo latest x testing y despliego con compose
         sed -i /image:/s/latest/testing/ ${compose}
         sed -i /imagePullPolicy/s/Always/Never/ ${compose}
+        #Despliegue en Openshift
+        #oc apply -f ${compose}
         #despliegue en Kubernetes
         kubectl apply -f ${compose}
         #desplioegue en swarm
@@ -167,51 +173,36 @@ jobs:
         app=hasher
         pattern='== Sinatra .* has taken the stage on .* for development with backup from Thin'
         while true
-          do
+          do 
             sleep 10
-            kubectl describe deploy
-            kubectl describe rs
-            kubectl describe po
             kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
           done
         app=redis
         pattern='Ready to accept connections'
         while true
-          do
+          do 
             sleep 10
-            kubectl describe deploy
-            kubectl describe rs
-            kubectl describe po
             kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
           done
         app=rng
         pattern='Running on'
         while true
-          do
+          do 
             sleep 10
-            kubectl describe deploy
-            kubectl describe rs
-            kubectl describe po
             kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
           done
         app=webui
         pattern='WEBUI running on port'
         while true
-          do
+          do 
             sleep 10
-            kubectl describe deploy
-            kubectl describe rs
-            kubectl describe po
             kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
           done
         app=worker
         pattern='Coin found'
         while true
-          do
+          do 
             sleep 10
-            kubectl describe deploy
-            kubectl describe rs
-            kubectl describe po
             kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
           done
-          
+    
