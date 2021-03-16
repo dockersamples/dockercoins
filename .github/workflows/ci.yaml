@@ -2,7 +2,7 @@ name: CI
 on: 
   push:
     branches: 
-    - master
+    - docker
 jobs: 
   docker:
     runs-on: ubuntu-18.04
