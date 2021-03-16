@@ -185,6 +185,7 @@ jobs:
             kubecetl deploy/redis
             kubectl describe rs
             kubectl describe po
+            kubectl logs describe deploy/redis
             sleep 100
             kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
           done
