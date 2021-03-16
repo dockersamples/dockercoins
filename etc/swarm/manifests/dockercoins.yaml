@@ -146,23 +146,23 @@ services:
         reservations:
           cpus: "0.1"
           memory: 100M
-      #no exponemos nada
-      #expose:
-      #  - 8080
-      healthcheck:
-        interval: 10s
-        retries: 3
-        start_period: 30s
-        test: netstat -nt | grep ESTABLISHED | grep -q 6379
-        timeout: 1s
-      image: macarenasre/dockercoins:latest-worker
-      networks:
-        #listar las que necesita usar
-        - hasher
-        - redis
-        - rng
-        #la que hemos declarado en networks
-        - worker
+    #no exponemos nada
+    #expose:
+    #  - 8080
+    healthcheck:
+      interval: 10s
+      retries: 3
+      start_period: 30s
+      test: netstat -nt | grep ESTABLISHED | grep -q 6379
+      timeout: 1s
+    image: macarenasre/dockercoins:latest-worker
+    networks:
+      #listar las que necesita usar
+      - hasher
+      - redis
+      - rng
+      #la que hemos declarado en networks
+      - worker
 version: '3.8'
 volumes:
   redis:
