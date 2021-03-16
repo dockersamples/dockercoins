@@ -117,8 +117,12 @@ jobs:
     - name: test
       run: |
         set -x
+        project=dockercoins
         #creo imagen image
-        docker build -t terferre/phpinfo-2:testing .
+        for app in hasher rng webui worker
+          do \
+            docker build -t macarenasre/dockercoins:testing-${app} ${app}
+          done
         #install kubernetes en ubunto
         sudo apt-get update -y
         #sudo apt-get install -y docker.io
@@ -152,31 +156,62 @@ jobs:
         master=$( kubectl get node | grep master | awk '{ print $1 }' ) 
         kubectl taint node ${master} node-role.kubernetes.io/master:NoSchedule-
         
-        project=phpinfo-2
         compose=etc/kubernetes/manifests/${project}.yaml
         #sustituyo latest x testing y despliego con compose
         sed -i /image:/s/latest/testing/ ${compose}
         sed -i /imagePullPolicy/s/Always/Never/ ${compose}
-        #Despliegue en Openshift
-        #oc apply -f ${compose}
         #despliegue en Kubernetes
         kubectl apply -f ${compose}
         #desplioegue en swarm
         #docker stack deploy -c ${compose} ${project}
-        while true 
-          do \
+        app=hasher
+        pattern='== Sinatra .* has taken the stage on .* for development with backup from Thin'
+        while true
+          do
             sleep 10
             kubectl describe deploy
             kubectl describe rs
             kubectl describe po
-            kubectl get deploy | grep "${project}.*\([0-9]\)/\1" && break
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
           done
+        app=redis
+        pattern='Ready to accept connections'
         while true
-          do \
+          do
             sleep 10
-            kubectl logs deploy/${project} 2>& 1 | grep 'PHP .* Development Server .* started' && break 
-          done      
-                        
-            
-            
-            
+            kubectl describe deploy
+            kubectl describe rs
+            kubectl describe po
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+        app=rng
+        pattern='Running on'
+        while true
+          do
+            sleep 10
+            kubectl describe deploy
+            kubectl describe rs
+            kubectl describe po
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+        app=webui
+        pattern='WEBUI running on port'
+        while true
+          do
+            sleep 10
+            kubectl describe deploy
+            kubectl describe rs
+            kubectl describe po
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+        app=worker
+        pattern='Coin found'
+        while true
+          do
+            sleep 10
+            kubectl describe deploy
+            kubectl describe rs
+            kubectl describe po
+            kubectl logs deploy/${app} 2>& 1 | grep "${pattern}" && break 
+          done
+          
