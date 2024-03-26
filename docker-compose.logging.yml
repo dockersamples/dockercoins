@@ -5,7 +5,7 @@ services:
   rng:
     build: rng
     ports:
-    - "8001:80"
+    - "8092:80"
     logging:
       driver: gelf
       options:
@@ -14,7 +14,7 @@ services:
   hasher:
     build: hasher
     ports:
-    - "8002:80"
+    - "8092:80"
     logging:
       driver: gelf
       options:
@@ -23,7 +23,7 @@ services:
   webui:
     build: webui
     ports:
-    - "8000:80"
+    - "8092:80"
     volumes:
     - "./webui/files/:/files/"
     logging:
